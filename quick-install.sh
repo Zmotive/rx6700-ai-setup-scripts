@@ -2,7 +2,7 @@
 # AI ROCm Docker Setup - Public Bootstrap Script
 # This script clones the private repo and runs the setup
 
-set -euo pipefail
+set -eo pipefail
 
 # Colors for output
 RED='\033[0;31m'

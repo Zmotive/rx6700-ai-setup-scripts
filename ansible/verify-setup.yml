@@ -1,0 +1,148 @@
+---
+# AI ROCm Docker Verification Playbook
+# Test that all components are working correctly
+
+- name: Verify AI System Setup
+  hosts: localhost
+  connection: local
+  become: no
+  
+  tasks:
+    - name: Check system information
+      debug:
+        msg: 
+          - "OS: {{ ansible_distribution }} {{ ansible_distribution_version }}"
+          - "Kernel: {{ ansible_kernel }}"
+          - "Architecture: {{ ansible_architecture }}"
+      tags: [info]
+
+    - name: Check for AMD GPU
+      shell: lspci | grep -i amd | grep -i vga
+      register: gpu_check
+      failed_when: false
+      changed_when: false
+      tags: [gpu]
+
+    - name: Display GPU information
+      debug:
+        msg: "AMD GPU: {{ gpu_check.stdout if gpu_check.rc == 0 else 'No AMD GPU detected' }}"
+      tags: [gpu]
+
+    - name: Check ROCm installation
+      stat:
+        path: /opt/rocm
+      register: rocm_dir
+      tags: [rocm]
+
+    - name: Verify ROCm directory exists
+      assert:
+        that: rocm_dir.stat.exists
+        fail_msg: "ROCm directory not found at /opt/rocm"
+        success_msg: "ROCm directory exists"
+      tags: [rocm]
+
+    - name: Test rocminfo command
+      command: rocminfo
+      register: rocminfo_output
+      failed_when: false
+      changed_when: false
+      tags: [rocm]
+
+    - name: Check rocminfo results
+      debug:
+        msg: "rocminfo {{ 'working' if rocminfo_output.rc == 0 else 'failed' }}"
+      tags: [rocm]
+
+    - name: Check Docker installation
+      command: docker --version
+      register: docker_version
+      changed_when: false
+      tags: [docker]
+
+    - name: Display Docker version
+      debug:
+        msg: "{{ docker_version.stdout }}"
+      tags: [docker]
+
+    - name: Test Docker functionality
+      command: docker run --rm hello-world
+      register: docker_test
+      failed_when: false
+      changed_when: false
+      tags: [docker]
+
+    - name: Check Docker test results
+      debug:
+        msg: "Docker basic test {{ 'passed' if docker_test.rc == 0 else 'failed' }}"
+      tags: [docker]
+
+    - name: Check user group memberships
+      command: groups
+      register: user_groups
+      changed_when: false
+      tags: [permissions]
+
+    - name: Verify user is in required groups
+      assert:
+        that:
+          - "'render' in user_groups.stdout"
+          - "'video' in user_groups.stdout"
+          - "'docker' in user_groups.stdout"
+        fail_msg: "User missing required group memberships"
+        success_msg: "User has all required group memberships"
+      tags: [permissions]
+
+    - name: Check workspace directories
+      stat:
+        path: "{{ ansible_env.HOME }}/{{ item }}"
+      register: workspace_dirs
+      loop:
+        - DockerVolumes
+        - Models
+        - Projects
+        - venvs
+      tags: [workspace]
+
+    - name: Verify workspace directories exist
+      assert:
+        that: item.stat.exists
+        fail_msg: "Workspace directory {{ item.item }} not found"
+        success_msg: "All workspace directories exist"
+      loop: "{{ workspace_dirs.results }}"
+      tags: [workspace]
+
+    - name: Check templates and tests
+      stat:
+        path: "{{ item }}"
+      register: template_files
+      loop:
+        - "{{ ansible_env.PWD }}/templates/docker-compose.ai-template.yml"
+        - "{{ ansible_env.PWD }}/tests/test-rocm-docker.sh"
+      tags: [files]
+
+    - name: Verify template and test files exist
+      assert:
+        that: item.stat.exists
+        fail_msg: "File {{ item.item }} not found"
+        success_msg: "All required files exist"
+      loop: "{{ template_files.results }}"
+      tags: [files]
+
+    - name: Final verification summary
+      debug:
+        msg:
+          - "✓ System: Ubuntu {{ ansible_distribution_version }}"
+          - "✓ ROCm: Installed at /opt/rocm"
+          - "✓ Docker: {{ docker_version.stdout.split()[2] }}"
+          - "✓ User Groups: render, video, docker"
+          - "✓ Workspace: Created in {{ ansible_env.HOME }}"
+          - "✓ Templates: Available in templates/"
+          - "✓ Tests: Available in tests/"
+          - ""
+          - "🎉 AI system setup verification completed!"
+          - ""
+          - "Next steps:"
+          - "1. Reboot your system"
+          - "2. Run: ./tests/test-rocm-docker.sh"
+          - "3. Start using Docker Compose templates"
+      tags: [summary]

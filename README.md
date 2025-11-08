@@ -97,7 +97,7 @@ cd ai-setup-scripts/ansible
 ansible-playbook verify-setup.yml
 ```
 
-Or test Docker integration:
+Or test Docker integration (after Ansible creates the test script):
 ```bash
 cd ai-setup-scripts
 ./tests/test-rocm-docker.sh
@@ -180,6 +180,7 @@ The installation automatically creates an organized folder structure:
 ### Start with Docker Compose
 ```bash
 cd ~/Projects
+# Copy the template created by Ansible
 cp ~/ai-setup-scripts/templates/docker-compose.ai-template.yml docker-compose.yml
 docker compose up -d pytorch-rocm
 docker compose exec pytorch-rocm bash
@@ -267,13 +268,17 @@ ai-setup-scripts/
 │   ├── inventory                   # Ansible inventory
 │   ├── ansible.cfg                 # Ansible configuration
 │   └── README.md                   # Ansible documentation
-├── templates/                      # Templates and configuration files
-│   └── docker-compose.ai-template.yml  # Docker Compose template
-├── tests/                          # Test scripts
-│   └── test-rocm-docker.sh         # ROCm Docker integration test
+├── quick-install.sh                # One-command installer
 ├── setup.log                       # Installation log (from previous runs)
 ├── .dockerignore                   # Docker ignore file
+├── .gitignore                      # Git ignore file
 └── README.md                       # This file
+
+# Created by Ansible during installation:
+├── templates/                      # Docker Compose templates (auto-generated)
+│   └── docker-compose.ai-template.yml
+└── tests/                          # Test scripts (auto-generated)
+    └── test-rocm-docker.sh
 ```
 
 ### Created Workspace Structure

@@ -31,6 +31,10 @@ ansible/
 ├── inventory                 # Ansible inventory (localhost)
 ├── ansible.cfg              # Ansible configuration
 └── README.md                # This file
+
+# Files created by the playbook:
+../templates/docker-compose.ai-template.yml  # Docker Compose template
+../tests/test-rocm-docker.sh                 # ROCm Docker test script
 ```
 
 ## 🎯 What the Playbook Does

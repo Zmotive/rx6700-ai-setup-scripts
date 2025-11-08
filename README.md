@@ -270,7 +270,6 @@ ai-setup-scripts/
 │   └── README.md                   # Ansible documentation
 ├── quick-install.sh                # One-command installer
 ├── setup.log                       # Installation log (from previous runs)
-├── .dockerignore                   # Docker ignore file
 ├── .gitignore                      # Git ignore file
 └── README.md                       # This file
 

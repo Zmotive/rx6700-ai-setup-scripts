@@ -1,3 +1,22 @@
-/setup.log
-/templates
-/tests
+# Log files
+setup.log
+*.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Don't ignore our important directories
+!/templates/
+!/tests/
+!/ansible/

@@ -70,8 +70,15 @@ This project uses **Ansible** for infrastructure as code, providing several key 
 
 ## Quick Start
 
+### Option 1: One-Command Install (Recommended)
 ```bash
-git clone <repository-url> ai-setup-scripts
+# Download and run the quick installer
+curl -fsSL https://raw.githubusercontent.com/Zmotive/rx6700-ai-setup-scripts/main/quick-install.sh | bash
+```
+
+### Option 2: Manual Clone and Install
+```bash
+git clone https://github.com/Zmotive/rx6700-ai-setup-scripts.git ai-setup-scripts
 cd ai-setup-scripts/ansible
 ./bootstrap.sh
 ```

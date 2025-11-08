@@ -362,6 +362,7 @@
 
     # ===============================================
     # TEMPLATE AND TEST FILES
+    # Note: These directories are in .gitignore since they're auto-generated
     # ===============================================
     
     - name: Create templates directory

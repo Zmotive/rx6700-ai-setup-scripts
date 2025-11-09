@@ -98,17 +98,26 @@
         success_msg: "User has all required group memberships"
       tags: [permissions]
 
-    - name: Check Projects directory
+    - name: Check ai-workspace directory structure
       stat:
-        path: "{{ ansible_env.HOME }}/Projects"
-      register: projects_dir
+        path: "{{ ansible_env.HOME }}/ai-workspace/{{ item }}"
+      register: workspace_dirs
+      loop:
+        - "DockerVolumes"
+        - "Models"
+        - "Projects"
+        - "venvs"
+        - "DockerVolumes/pytorch"
+        - "DockerVolumes/tensorflow"
+        - "DockerVolumes/jupyter"
       tags: [workspace]
 
-    - name: Verify Projects directory exists
+    - name: Verify ai-workspace directory structure exists
       assert:
-        that: projects_dir.stat.exists
-        fail_msg: "Projects directory not found"
-        success_msg: "Projects directory exists"
+        that: item.stat.exists
+        fail_msg: "ai-workspace directory {{ item.item }} not found"
+        success_msg: "ai-workspace directory {{ item.item }} exists"
+      loop: "{{ workspace_dirs.results }}"
       tags: [workspace]
 
     - name: Check templates directory
@@ -139,7 +148,7 @@
           - "✓ GPU: {{ gpu_check.stdout if gpu_check.rc == 0 else 'No AMD GPU detected' }}"
           - "✓ ROCm Info: {{ 'Working' if rocminfo_output.rc == 0 else 'Failed' }}"
           - "✓ Docker Test: {{ 'Passed' if docker_test.rc == 0 else 'Failed' }}"
-          - "✓ Projects Directory: {{ 'exists' if projects_dir.stat.exists else 'missing' }}"
+          - "✓ AI Workspace: {{ 'Complete' if workspace_dirs.results | selectattr('stat.exists') | list | length == 7 else 'Incomplete' }}"
           - ""
           - "🎉 AI system setup verification completed!"
           - ""

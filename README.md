@@ -63,10 +63,11 @@ This project uses **Ansible** for infrastructure as code, providing several key 
 - Optimized daemon configuration
 - AI-focused container templates
 
-### Workspace Organization
-- **Structured directories** - Organized project layout
+### AI Workspace Organization
+- **ai-workspace/** - All AI-related files in one organized location
 - **Template files** - Ready-to-use Docker Compose configurations
 - **Test scripts** - Verify everything works correctly
+- **Volume management** - Proper Docker volume organization
 
 ## Quick Start
 
@@ -137,51 +138,48 @@ ansible-playbook verify-setup.yml --tags rocm,docker
 
 ## Usage Examples
 
-### Start PyTorch Container
+### Start PyTorch Container (Manual)
 ```bash
 docker run -it \
   --device=/dev/kfd \
   --device=/dev/dri \
-  --group-add video \
-  --group-add render \
-  -v ~/Projects:/workspace/projects \
-  -v ~/Models:/workspace/models \
-  -v ~/DockerVolumes/jupyter:/workspace/jupyter \
+  --group-add 44 \
+  --group-add 109 \
+  -v ~/ai-workspace/Projects:/workspace/Projects \
+  -v ~/ai-workspace/Models:/workspace/Models \
+  -v ~/ai-workspace/DockerVolumes/pytorch:/workspace/data \
   rocm/pytorch:latest
 ```
 
 ### Use Docker Compose Template
 ```bash
-### Use Pre-configured Workspace
-The installation automatically creates an organized folder structure:
+### Use Pre-configured AI Workspace
+The installation automatically creates an organized **ai-workspace** folder structure:
 ```bash
-# Folders created during installation:
-~/DockerVolumes/     # Docker container persistent storage
-├── jupyter/         # Jupyter notebooks and configs
-├── tensorboard/     # TensorBoard logs
-├── datasets/        # Training datasets
-├── checkpoints/     # Model checkpoints
-└── logs/           # Training logs
-
-~/Models/           # AI models and weights
-├── pytorch/        # PyTorch models
-├── tensorflow/     # TensorFlow models
-├── onnx/          # ONNX format models
-└── huggingface/   # Hugging Face models
-
-~/Projects/         # Your AI projects
-├── ai-experiments/ # Experimental projects
-├── training/      # Training scripts
-└── inference/     # Inference projects
-
-~/venvs/           # Python virtual environments
+# All AI files organized in ~/ai-workspace/:
+~/ai-workspace/
+├── DockerVolumes/          # Docker container persistent storage
+│   ├── jupyter/            # Jupyter notebooks and configs
+│   ├── pytorch/            # PyTorch container data
+│   ├── tensorflow/         # TensorFlow container data
+│   └── shared/             # Shared data between containers
+├── Models/                 # AI models and weights
+│   ├── pytorch/            # PyTorch models
+│   ├── tensorflow/         # TensorFlow models
+│   ├── onnx/              # ONNX format models
+│   └── huggingface/       # Hugging Face models
+├── Projects/              # Your AI projects and docker-compose.yml
+│   ├── ai-experiments/    # Experimental projects
+│   ├── training/          # Training scripts
+│   └── inference/         # Inference projects
+└── venvs/                 # Python virtual environments
 ```
 
 ### Start with Docker Compose
 ```bash
-cd ~/Projects
+cd ~/ai-workspace/Projects
 # Copy the template created by Ansible
-cp ~/ai-setup-scripts/templates/docker-compose.ai-template.yml docker-compose.yml
+cp ~/ai-setup-scripts/ansible/templates/docker-compose.ai-template.yml docker-compose.yml
 docker compose up -d pytorch-rocm
 docker compose exec pytorch-rocm bash
 ```
@@ -202,21 +200,24 @@ print(f"GPU computation successful: {z.shape}")
 
 ## Troubleshooting
 
+> **📋 Detailed Troubleshooting**: See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for comprehensive issue resolution including the technical challenges solved during development.
+
 ### Common Issues
 
 1. **No ROCm devices detected**
-   - Ensure you're in the `render` and `video` groups
+   - Ensure you're in the `render` and `video` groups: `groups $USER`
    - Reboot after installation
-   - Check GPU compatibility
+   - Check GPU compatibility: `rocminfo`
 
 2. **Docker permission denied**
-   - Ensure you're in the `docker` group
+   - Ensure you're in the `docker` group: `groups $USER` 
    - Log out and back in after installation
    - Or use `newgrp docker`
 
 3. **Container can't access GPU**
+   - Use numeric group IDs: `--group-add 44 --group-add 109`
    - Verify device mounting: `--device=/dev/kfd --device=/dev/dri`
-   - Check group additions: `--group-add video --group-add render`
+   - Don't mount host ROCm: Remove `-v /opt/rocm:/opt/rocm:ro`
 
 ### Verification Commands
 ```bash
@@ -227,10 +228,15 @@ rocm-smi
 # Check Docker access
 docker run --rm hello-world
 
-# Check GPU access in container
+# Check GPU access in container (using numeric group IDs)
 docker run --rm --device=/dev/kfd --device=/dev/dri \
-  --group-add video --group-add render \
+  --group-add 44 --group-add 109 \
   rocm/rocm-terminal:latest rocminfo
+
+# Test PyTorch ROCm integration
+docker run --rm --device=/dev/kfd --device=/dev/dri \
+  --group-add 44 --group-add 109 \
+  rocm/pytorch:latest python3 -c "import torch; print('ROCm available:', torch.cuda.is_available())"
 ```
 
 ### Clean Reinstallation
@@ -269,9 +275,10 @@ ai-setup-scripts/
 │   ├── ansible.cfg                 # Ansible configuration
 │   └── README.md                   # Ansible documentation
 ├── quick-install.sh                # One-command installer
-├── setup.log                       # Installation log (from previous runs)
-├── .gitignore                      # Git ignore file
-└── README.md                       # This file
+├── verify-system.sh                # System verification wrapper
+├── README.md                       # This file
+├── TROUBLESHOOTING.md             # Detailed technical troubleshooting guide
+└── .gitignore                      # Git ignore file
 
 # Created by Ansible during installation:
 ├── templates/                      # Docker Compose templates (auto-generated)
@@ -280,16 +287,16 @@ ai-setup-scripts/
     └── test-rocm-docker.sh
 ```
 
-### Created Workspace Structure
+### Created AI Workspace Structure
 ```
-$HOME/
+$HOME/ai-workspace/        # All AI files organized together
 ├── DockerVolumes/          # Docker volume mounts
 │   ├── pytorch/           # PyTorch container data
 │   ├── tensorflow/        # TensorFlow container data
 │   ├── jupyter/           # Jupyter Lab data
 │   └── shared/            # Shared data between containers
 ├── Models/                # AI model storage
-├── Projects/              # Project workspaces
+├── Projects/              # Project workspaces (contains docker-compose.yml)
 └── venvs/                 # Python virtual environments
 ```
 

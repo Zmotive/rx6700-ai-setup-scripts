@@ -8,7 +8,7 @@
   gather_facts: no
   vars:
     rocm_version: "6.1"
-    user_name: "{{ ansible_user_id }}"
+    user_name: "{{ target_user | default(ansible_env.USER | default(ansible_user_id)) }}"
     
   tasks:
     # ===============================================
@@ -223,14 +223,14 @@
     
     - name: Add ROCm to PATH in bashrc
       lineinfile:
-        path: "{{ ansible_env.HOME }}/.bashrc"
+        path: "/home/{{ user_name }}/.bashrc"
         line: "export PATH=/opt/rocm/bin:$PATH"
         create: yes
       tags: [environment]
     
     - name: Add ROCm_ROOT to bashrc
       lineinfile:
-        path: "{{ ansible_env.HOME }}/.bashrc"
+        path: "/home/{{ user_name }}/.bashrc"
         line: "export ROCm_ROOT=/opt/rocm"
         create: yes
       tags: [environment]
@@ -241,9 +241,11 @@
     
     - name: Create AI workspace directories
       file:
-        path: "{{ ansible_env.HOME }}/{{ item }}"
+        path: "/home/{{ user_name }}/{{ item }}"
         state: directory
         mode: '0755'
+        owner: "{{ user_name }}"
+        group: "{{ user_name }}"
       loop:
         - DockerVolumes
         - DockerVolumes/pytorch

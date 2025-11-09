@@ -68,17 +68,25 @@ run_playbook() {
     
     cd "$(dirname "$0")"
     
+    # Detect the real user (not root even when running with sudo)
+    REAL_USER="${SUDO_USER:-${USER}}"
+    if [[ "$REAL_USER" == "root" ]]; then
+        # Last resort: get user from /home directory
+        REAL_USER=$(ls /home | head -1)
+    fi
+    
+    info "Detected real user: $REAL_USER"
     info "Using the fixed playbook that avoids become hanging issues..."
     info "Running with maximum verbosity to debug any hanging issues..."
     
     # Check if we can sudo without password
     if sudo -n true 2>/dev/null; then
         info "Passwordless sudo detected. Running playbook..."
-        ansible-playbook setup-ai-system.yml -v
+        ansible-playbook setup-ai-system.yml -v --extra-vars "target_user=$REAL_USER"
     else
         info "Sudo password will be requested by the playbook when needed."
         # Run the playbook that handles sudo internally
-        ansible-playbook setup-ai-system.yml -v
+        ansible-playbook setup-ai-system.yml -v --extra-vars "target_user=$REAL_USER"
     fi
     
     log "Playbook execution completed"

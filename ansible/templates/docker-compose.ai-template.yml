@@ -1,0 +1,92 @@
+services:
+  pytorch-rocm:
+    image: rocm/pytorch:latest
+    container_name: pytorch-rocm
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      - "44"    # video group
+      - "109"   # render group
+    ipc: host
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+    volumes:
+      - ~/ai-workspace/Projects:/workspace/Projects
+      - ~/ai-workspace/Models:/workspace/Models
+      - ~/ai-workspace/DockerVolumes/pytorch:/workspace/data
+      - /opt/rocm:/opt/rocm:ro
+    working_dir: /workspace
+    environment:
+      - HIP_PLATFORM=amd
+      - ROCM_PATH=/opt/rocm
+      - HSA_OVERRIDE_GFX_VERSION=10.3.0  # Adjust for your GPU
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+  tensorflow-rocm:
+    image: rocm/tensorflow:latest
+    container_name: tensorflow-rocm
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      - "44"    # video group
+      - "109"   # render group
+    ipc: host
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+    volumes:
+      - ~/ai-workspace/Projects:/workspace/Projects
+      - ~/ai-workspace/Models:/workspace/Models
+      - ~/ai-workspace/DockerVolumes/tensorflow:/workspace/data
+      - /opt/rocm:/opt/rocm:ro
+    working_dir: /workspace
+    environment:
+      - HIP_PLATFORM=amd
+      - ROCM_PATH=/opt/rocm
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+  jupyter-rocm:
+    image: rocm/pytorch:latest
+    container_name: jupyter-rocm
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      - "44"    # video group
+      - "109"   # render group
+    ipc: host
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+    volumes:
+      - ~/ai-workspace/Projects:/workspace/Projects
+      - ~/ai-workspace/Models:/workspace/Models
+      - ~/ai-workspace/DockerVolumes/jupyter:/workspace/data
+      - /opt/rocm:/opt/rocm:ro
+    working_dir: /workspace
+    environment:
+      - HIP_PLATFORM=amd
+      - ROCM_PATH=/opt/rocm
+      - HSA_OVERRIDE_GFX_VERSION=10.3.0
+    ports:
+      - "8888:8888"
+    command: >
+      bash -c "pip install jupyter jupyterlab &&
+               jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --NotebookApp.token='' --NotebookApp.password=''"
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+networks:
+  default:
+    driver: bridge

@@ -185,6 +185,12 @@ docker compose exec pytorch-rocm bash
 ```
 ```
 
+### Install AI Packages (Recommended Method)
+```bash
+# 🔑 ALWAYS use pre-compiled wheels to avoid compilation issues:
+pip install --only-binary=:all: tokenizers diffusers transformers accelerate
+```
+
 ### Test GPU in PyTorch
 ```python
 import torch
@@ -198,9 +204,13 @@ z = torch.mm(x, y)
 print(f"GPU computation successful: {z.shape}")
 ```
 
-## Troubleshooting
+## Documentation
+
+> **🎯 Setup Best Practices**: See [SETUP-NOTES.md](SETUP-NOTES.md) for proven working patterns, pre-compiled wheels strategy, and reliable configuration templates.
 
 > **📋 Detailed Troubleshooting**: See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) for comprehensive issue resolution including the technical challenges solved during development.
+
+## Troubleshooting
 
 ### Common Issues
 

@@ -16,9 +16,5 @@ setup.log
 .DS_Store
 Thumbs.db
 
-# Generated files and directories (created by Ansible)
-templates/
-tests/
-
 # Don't ignore our important ansible directory
 !/ansible/

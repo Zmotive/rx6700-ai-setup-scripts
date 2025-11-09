@@ -1,6 +1,6 @@
 services:
   pytorch-rocm:
-    image: rocm/pytorch:latest
+    image: rocm/pytorch:rocm6.4.4_ubuntu24.04_py3.12_pytorch_release_2.7.1
     container_name: pytorch-rocm
     devices:
       - /dev/kfd:/dev/kfd
@@ -17,12 +17,70 @@ services:
       - ~/ai-workspace/Projects:/workspace/Projects
       - ~/ai-workspace/Models:/workspace/Models
       - ~/ai-workspace/DockerVolumes/pytorch:/workspace/data
-      - /opt/rocm:/opt/rocm:ro
     working_dir: /workspace
     environment:
       - HIP_PLATFORM=amd
-      - ROCM_PATH=/opt/rocm
-      - HSA_OVERRIDE_GFX_VERSION=10.3.0  # Adjust for your GPU
+      - HSA_OVERRIDE_GFX_VERSION=10.3.0  # RX 6700 XT (adjust: 11.0.0 for RX 7900 XTX)
+      - "PIP_ONLY_BINARY=:all:"  # Force pre-compiled wheels (essential!)
+      - PYTORCH_HIP_ALLOC_CONF=max_split_size_mb:128
+      
+      # Performance optimizations
+      - AMD_SERIALIZE_KERNEL=1
+      - HSA_FORCE_FINE_GRAIN_PCIE=1
+      - ROCBLAS_LAYER=0
+      - TORCH_USE_HIP_DSA=1
+      - HIP_DB=0x1
+      - HSA_ENABLE_SDMA=0
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
+
+  stable-diffusion:
+    image: rocm/pytorch:rocm6.4.4_ubuntu24.04_py3.12_pytorch_release_2.7.1
+    container_name: stable-diffusion-api
+    devices:
+      - /dev/kfd:/dev/kfd
+      - /dev/dri:/dev/dri
+    group_add:
+      - "44"    # video group
+      - "109"   # render group
+    ipc: host
+    cap_add:
+      - SYS_PTRACE
+    security_opt:
+      - seccomp:unconfined
+    volumes:
+      - ~/ai-workspace/Projects:/workspace/Projects
+      - ~/ai-workspace/Models:/workspace/Models
+      - ~/ai-workspace/DockerVolumes/stable-diffusion:/workspace/data
+    working_dir: /workspace
+    environment:
+      - HIP_PLATFORM=amd
+      - HSA_OVERRIDE_GFX_VERSION=10.3.0
+      - "PIP_ONLY_BINARY=:all:"
+      - PYTORCH_HIP_ALLOC_CONF=max_split_size_mb:128
+      
+      # Performance optimizations
+      - AMD_SERIALIZE_KERNEL=1
+      - HSA_FORCE_FINE_GRAIN_PCIE=1
+      - ROCBLAS_LAYER=0
+      - TORCH_USE_HIP_DSA=1
+      - HIP_DB=0x1
+      - HSA_ENABLE_SDMA=0
+      - GPU_MAX_ALLOC_PERCENT=80
+      - GPU_SINGLE_ALLOC_PERCENT=60
+      - HIP_VISIBLE_DEVICES=0
+      - CUDA_VISIBLE_DEVICES=0
+    ports:
+      - "8000:8000"
+    command: >
+      bash -c "
+        echo 'Installing dependencies with pre-compiled wheels...' &&
+        pip install --no-cache-dir --only-binary=:all: diffusers transformers accelerate safetensors pillow fastapi uvicorn &&
+        echo 'Starting Stable Diffusion API (Phase 1 optimizations enabled)...' &&
+        echo 'Supports: 512×512, 640×640, 768×768 resolutions' &&
+        python3 /workspace/Projects/minimal_sd_api.py
+      "
     stdin_open: true
     tty: true
     restart: unless-stopped

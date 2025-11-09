@@ -68,8 +68,18 @@ run_playbook() {
     
     cd "$(dirname "$0")"
     
-    # Run the playbook
-    ansible-playbook setup-ai-system.yml --ask-become-pass
+    info "Using the fixed playbook that avoids become hanging issues..."
+    info "Running with maximum verbosity to debug any hanging issues..."
+    
+    # Check if we can sudo without password
+    if sudo -n true 2>/dev/null; then
+        info "Passwordless sudo detected. Running playbook..."
+        ansible-playbook setup-ai-system.yml -v
+    else
+        info "Sudo password will be requested by the playbook when needed."
+        # Run the playbook that handles sudo internally
+        ansible-playbook setup-ai-system.yml -v
+    fi
     
     log "Playbook execution completed"
 }
@@ -78,7 +88,7 @@ show_completion_message() {
     echo -e "\n${GREEN}"
     cat << 'EOF'
 ╔══════════════════════════════════════════════════════════════╗
-║              ANSIBLE SETUP COMPLETED!                       ║
+║              ANSIBLE SETUP COMPLETED!                        ║
 ╚══════════════════════════════════════════════════════════════╝
 EOF
     echo -e "${NC}"

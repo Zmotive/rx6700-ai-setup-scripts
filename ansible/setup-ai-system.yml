@@ -7,7 +7,7 @@
   connection: local
   gather_facts: no
   vars:
-    rocm_version: "6.1"
+    rocm_version: "6.4"
     user_name: "{{ target_user | default(ansible_env.USER | default(ansible_user_id)) }}"
     
   tasks:
@@ -160,9 +160,9 @@
     
     - name: Add ROCm repository
       shell: |
-        echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/6.1 jammy main" | sudo tee /etc/apt/sources.list.d/rocm.list
-      args:
-        creates: /etc/apt/sources.list.d/rocm.list
+        echo "deb [arch=amd64 signed-by=/etc/apt/keyrings/rocm.gpg] https://repo.radeon.com/rocm/apt/{{ rocm_version }} jammy main" | sudo tee /etc/apt/sources.list.d/rocm.list
+      register: rocm_repo
+      changed_when: true
       tags: [rocm]
     
     - name: Update package cache after adding ROCm repo
@@ -171,12 +171,21 @@
       changed_when: "'Reading package lists' in apt_update_rocm.stdout"
       tags: [rocm]
     
-    - name: Install ROCm core dependencies with specific versions
+    - name: Remove any existing ROCm packages from Ubuntu repos
+      shell: |
+        sudo apt remove -y rocm-cmake rocm-device-libs rocminfo libhsa-runtime64-1 libhsakmt1 || true
+        sudo apt autoremove -y || true
+      register: rocm_cleanup_ubuntu
+      changed_when: "'Removing' in rocm_cleanup_ubuntu.stdout"
+      tags: [rocm]
+    
+    - name: Install ROCm core dependencies from ROCm 6.4 repo
       shell: |
         sudo apt install -y \
-        rocm-cmake=0.12.0.60100-82~22.04 \
-        rocm-device-libs=1.0.0.60100-82~22.04 \
-        rocminfo=1.0.0.60100-82~22.04
+        rocm-core=6.4.0.60400-47~22.04 \
+        rocm-cmake=0.14.0.60400-47~22.04 \
+        rocm-device-libs=1.0.0.60400-47~22.04 \
+        rocminfo=1.0.0.60400-47~22.04
       register: rocm_deps
       changed_when: "'newly installed' in rocm_deps.stdout"
       tags: [rocm]
@@ -192,12 +201,12 @@
         msg: "ROCm packages status: {{ rocm_check.stdout_lines }}"
       tags: [rocm]
     
-    - name: Install ROCm packages (with timeout and detailed output)
+    - name: Install minimal ROCm packages (rocminfo for GPU verification only)
       shell: |
-        timeout 300 sudo apt install -y rocm-dev rocm-libs rocm-utils 2>&1 || echo "Installation timed out or completed"
+        sudo apt install -y rocm-core rocm-cmake rocm-device-libs rocminfo rocm-smi-lib 2>&1
       register: rocm_install
-      changed_when: "'newly installed' in rocm_install.stdout"
-      failed_when: false
+      changed_when: "'newly installed' in rocm_install.stdout or 'upgraded' in rocm_install.stdout"
+      failed_when: "rocm_install.rc != 0"
       tags: [rocm]
     
     - name: Display ROCm installation output
